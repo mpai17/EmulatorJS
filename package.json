@@ -21,6 +21,7 @@
         "docs": "jsdoc data/src/*.js -d jsdoc"
     },
     "dependencies": {
+        "@emulatorjs/core-gambatte": "^4.2.3",
         "@node-minify/clean-css": "^10.4.0",
         "@node-minify/core": "^10.4.0",
         "http-server": "^14.1.1",
