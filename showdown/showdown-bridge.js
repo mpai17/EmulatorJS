@@ -165,18 +165,15 @@ class ShowdownBridge {
     }
   }
 
-  async _waitForBattleStart(timeout = 15000) {
+  async _waitForBattleStart() {
     return new Promise((resolve, reject) => {
       if (this._battleStarted) { resolve(); return; }
-      const timer = setTimeout(() => reject(new Error('Battle start timeout')), timeout);
       this._cancelSearch = () => {
-        clearTimeout(timer);
         reject(new Error('Search cancelled'));
       };
       this.playerConn.onBattleStarted = () => {
         this._battleStarted = true;
         this._cancelSearch = null;
-        clearTimeout(timer);
         resolve();
       };
     });
