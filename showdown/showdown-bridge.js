@@ -339,13 +339,13 @@ class ShowdownBridge {
         // Small delay to let enemy's post-turn |request| and |win|/|tie| arrive
         await this._delay(200);
 
-        // Battle-ending double faint (e.g. Explosion KOs both last Pokemon):
+        // Battle-ending faint (last enemy mon KO'd, or double faint like Explosion):
         // _onBattleEnd fires from |win|/|tie| and sets _battleResult.
         // Don't set up faint replacement — there are no replacements.
-        if (this._battleResult && faintMsgs.length >= 2) {
+        if (this._battleResult && faintMsgs.length > 0) {
           this._pendingFaintReplace = false;
           this._faintSide = null;
-          console.log('[ShowdownBridge] Battle-ending double faint — skipping faint replacement');
+          console.log('[ShowdownBridge] Battle-ending faint — skipping faint replacement');
         }
 
         // Translate messages to WRAM overrides (pass pre-turn HP to avoid race condition)

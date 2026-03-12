@@ -1017,6 +1017,20 @@
           writeActiveBattleMonToWRAM(bridge.rom, bridge._enemyRequest, 'enemy');
         }
 
+        // In play mode, zero all enemy party HP. The ROM's templates leave all 6
+        // slots with non-zero HP, but only mons that actually appear in the battle
+        // should be "alive". Without this, AnyEnemyPokemonAliveCheck finds unseen
+        // mons alive and tries to send them out instead of ending the battle.
+        // writeEnemyMonFromSpecies populates HP when each mon switches in.
+        if (bridge.mode === 'play') {
+          const STRUCT_LEN = 0x2C;
+          for (let i = 0; i < 6; i++) {
+            const hpAddr = ADDR.EnemyMon1HP + i * STRUCT_LEN;
+            bridge.rom.write8(hpAddr, 0);
+            bridge.rom.write8(hpAddr + 1, 0);
+          }
+        }
+
         // Process initial battle messages for HP state
         bridge._processInitialMessages();
 
