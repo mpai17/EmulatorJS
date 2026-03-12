@@ -232,6 +232,11 @@ class TurnTranslator {
     this.enemyParty = [];
 
     this._initialized = false;
+
+    // Protocol side remapping — Showdown may assign the player as p1 or p2.
+    // Internally we always use p1 = player, p2 = enemy.  _parseSide remaps
+    // protocol identifiers so downstream code doesn't need to care.
+    this.playerProtoSide = 'p1'; // set from request.side.id on init
   }
 
   /**
@@ -240,6 +245,14 @@ class TurnTranslator {
    */
   initFromRequest(request, side) {
     if (!request.side) return;
+
+    // Detect which protocol side the player was assigned
+    if (side === 'p1' && request.side.id) {
+      this.playerProtoSide = request.side.id;
+      if (this.playerProtoSide !== 'p1') {
+        console.log(`[TurnTranslator] Player assigned as ${this.playerProtoSide} — remapping protocol sides`);
+      }
+    }
 
     const pokemon = request.side.pokemon;
     for (let i = 0; i < pokemon.length; i++) {
@@ -718,9 +731,15 @@ class TurnTranslator {
 
   _parseSide(pokemonIdent) {
     if (!pokemonIdent) return null;
-    if (pokemonIdent.startsWith('p1')) return 'p1';
-    if (pokemonIdent.startsWith('p2')) return 'p2';
-    return null;
+    let proto = null;
+    if (pokemonIdent.startsWith('p1')) proto = 'p1';
+    else if (pokemonIdent.startsWith('p2')) proto = 'p2';
+    else return null;
+    // Remap: if player is p2 in protocol, swap so internal p1 = player
+    if (this.playerProtoSide === 'p2') {
+      return proto === 'p1' ? 'p2' : 'p1';
+    }
+    return proto;
   }
 
   _parseSpecies(pokemonIdent) {
