@@ -308,6 +308,7 @@ class ShowdownConnection {
 
   _processBattleMessages(roomId, lines) {
     const messages = [];
+    let battleEndResult = null;
     for (const line of lines) {
       if (!line.startsWith('|')) continue;
       const parts = line.slice(1).split('|');
@@ -327,14 +328,20 @@ class ShowdownConnection {
 
       if (cmd === 'win' || cmd === 'tie') {
         console.log(`[${this.name}] Battle ended: ${line}`);
-        if (this.onBattleEnd) this.onBattleEnd({ type: cmd, winner: parts[1] });
+        battleEndResult = { type: cmd, winner: parts[1] };
       }
 
       messages.push({ cmd, parts, raw: line });
     }
 
+    // Deliver battle messages BEFORE battle end so turn data is fully
+    // accumulated before _onBattleEnd resolves any pending waiters.
     if (messages.length > 0 && this.onBattleMessage) {
       this.onBattleMessage(roomId, messages);
+    }
+
+    if (battleEndResult && this.onBattleEnd) {
+      this.onBattleEnd(battleEndResult);
     }
   }
 }

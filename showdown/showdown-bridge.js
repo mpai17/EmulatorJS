@@ -480,6 +480,9 @@ class ShowdownBridge {
           await this._delay(100);
           const p = this.rom.read8(ADDR.SD_Phase);
           if (p === 0 || p === 1) break;
+          // Battle ended (last mon fainted) — ROM won't cycle back to Phase 0/1
+          const ls = this.rom.read8(ADDR.LinkState);
+          if (ls === 0) break;
         }
 
         // Restore stat modifiers, then apply only Showdown-reported changes

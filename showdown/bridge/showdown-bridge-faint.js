@@ -88,8 +88,19 @@ ShowdownBridge.prototype._handlePlayerFaintExchange = async function() {
   const choice = `switch ${sdIndex + 1}`;
   console.log(`[ShowdownBridge] Player faint switch: ${targetSpecies} (ROM slot ${whichPokemon}, SD slot ${sdIndex}) → "${choice}"`);
 
-  // Update translator's active tracking
+  // Update translator's active tracking and clear volatiles (recharge, confusion, etc.)
   this.translator.active.p1 = whichPokemon;
+  this.translator.confused.p1 = false;
+  this.translator.recharging.p1 = false;
+  this.translator.trapped.p1 = false;
+  this.translator.biding.p1 = false;
+  this.translator.thrashing.p1 = false;
+  this.translator.charging.p1 = false;
+  this.translator.invulnerable.p1 = false;
+  this.translator.raging.p1 = false;
+  this.translator.disabled.p1 = null;
+  this.translator.substitute.p1 = false;
+  this.translator.seeded.p1 = false;
 
   // Send forceSwitch response to Showdown
   const rqid = this._playerForceRqid || this.playerConn._rqid;
@@ -145,8 +156,19 @@ ShowdownBridge.prototype._handleDoubleFaint = async function() {
   const choice = `switch ${sdIndex + 1}`;
   console.log(`[ShowdownBridge] Double faint player switch: ${targetSpecies} (ROM slot ${whichPokemon}, SD slot ${sdIndex}) → "${choice}"`);
 
-  // Update translator's active tracking
+  // Update translator's active tracking and clear volatiles
   this.translator.active.p1 = whichPokemon;
+  this.translator.confused.p1 = false;
+  this.translator.recharging.p1 = false;
+  this.translator.trapped.p1 = false;
+  this.translator.biding.p1 = false;
+  this.translator.thrashing.p1 = false;
+  this.translator.charging.p1 = false;
+  this.translator.invulnerable.p1 = false;
+  this.translator.raging.p1 = false;
+  this.translator.disabled.p1 = null;
+  this.translator.substitute.p1 = false;
+  this.translator.seeded.p1 = false;
 
   // 2. Send player's switch to Showdown
   const rqid = this._playerForceRqid || this.playerConn._rqid;
