@@ -30,32 +30,34 @@ ShowdownBridge.prototype._syncPreTurnStatus = function(overrides) {
     const cureFreeze = (overrides.statusChanges || []).some(
       s => s.side === side && s.statusId === 'frz' && s.type === 'cure');
 
-    // _atTurnStart is updated by processTurnLog on switch events to reflect
-    // the incoming mon's pre-existing status (before any moves this turn).
-    const sdStatus = this.translator._atTurnStart?.status?.[side] || '';
-    let statusByte = 0;
-    if (sdStatus === 'par') statusByte = 0x40;
-    else if (sdStatus === 'brn') statusByte = 0x10;
-    else if (sdStatus === 'psn' || sdStatus === 'tox') statusByte = 0x08;
-    else if (sdStatus === 'frz') statusByte = 0x20;
-    else if (sdStatus === 'slp') statusByte = 0x02;
+    // Only adjust WRAM status for sleep/freeze counter management.
+    // Do NOT unconditionally overwrite — the ROM already has the correct
+    // non-volatile status from _syncPostTurnStatus of the previous turn.
+    // Overwriting here would prematurely set statuses that are applied by
+    // moves THIS turn (e.g. writing SLP before Hypnosis executes → "already asleep").
+    let statusByte = this.rom.read8(activeAddr);
 
-    // Sleep counter adjustments
     if (cantEntry?.reason === 'slp') {
+      // Mon is asleep and can't move — ensure sleep counter is > 0
       statusByte = (statusByte & ~0x07) | 0x02;
+      this.rom.write8(activeAddr, statusByte);
+      this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
     } else if (cureSleep) {
+      // Mon wakes up this turn — set counter to 1 so ROM decrements to 0
       statusByte = (statusByte & ~0x07) | 0x01;
-    }
-
-    // Freeze adjustments
-    if (cantEntry?.reason === 'frz') {
+      this.rom.write8(activeAddr, statusByte);
+      this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
+    } else if (cantEntry?.reason === 'frz') {
+      // Mon is frozen and can't move — ensure freeze bit is set
       statusByte |= 0x20;
+      this.rom.write8(activeAddr, statusByte);
+      this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
     } else if (cureFreeze) {
+      // Mon thaws this turn — clear freeze bit
       statusByte &= ~0x20;
+      this.rom.write8(activeAddr, statusByte);
+      this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
     }
-
-    this.rom.write8(activeAddr, statusByte);
-    this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
 
     // Recharge flag
     let bs2 = this.rom.read8(bs2Addr);
