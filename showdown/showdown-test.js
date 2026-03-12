@@ -1,5 +1,5 @@
 /**
- * ShowdownEmu — Test automation.
+ * Showdown EmuLink — Test automation.
  *
  * Contains TEST_TURNS, runTest, _validateTurn, _printTestResults,
  * window.startShowdownTest, and the auto-start IIFE.
@@ -380,8 +380,8 @@ ShowdownBridge.prototype.runTest = async function() {
 
     // Log what the player selected
     const playerAction = this.rom.read8(ADDR.SerialSendData);
-    const playerMove = this.rom.read8(0xCCDC); // wPlayerSelectedMove
-    const playerSlot = this.rom.read8(0xCC2E); // wPlayerMoveListIndex
+    const playerMove = this.rom.read8(ADDR.PlayerSelectedMove);
+    const playerSlot = this.rom.read8(ADDR.PlayerMoveListIndex);
     console.log(`[Test] Turn ${i + 1}: player action=${playerAction} move=0x${playerMove.toString(16)} slot=${playerSlot}`);
 
     // Write turn overrides

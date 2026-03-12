@@ -227,6 +227,10 @@ class TurnTranslator {
       status: { p1: '', p2: '' },
     };
 
+    // Enemy party tracking — built up as enemy Pokemon are seen via |switch|
+    // In test mode this mirrors window.PARTY; in play mode it's built dynamically
+    this.enemyParty = [];
+
     this._initialized = false;
   }
 
@@ -259,7 +263,7 @@ class TurnTranslator {
     for (let i = 0; i < pokemon.length; i++) {
       const mon = pokemon[i];
       const species = mon.ident.split(': ')[1];
-      const partyIdx = this._findPartyIndex(species);
+      const partyIdx = this._findPartyIndex(species, side);
       const [cur, max] = this._parseHP(mon.condition);
       this.hp[side][partyIdx] = cur;
       this.maxHp[side][partyIdx] = max;
@@ -507,11 +511,21 @@ class TurnTranslator {
             hpText: parts[3],
           });
           this._handleSwitch(side, parts[1], parts[3]);
+          // Update turn-start snapshot to reflect the incoming mon's state at
+          // switch-in, before any subsequent moves this turn modify it.
+          // _handleSwitch clears all volatiles and updates active index.
+          this._atTurnStart.status[side] = this.status[side][this.active[side]] || '';
+          this._atTurnStart.confused[side] = false;
+          this._atTurnStart.substitute[side] = false;
+          this._atTurnStart.seeded[side] = false;
+          this._atTurnStart.disabled[side] = null;
           // Switches happen before moves — count as first action for turn order
           if (firstActionSide === null) firstActionSide = side;
           break;
         case '-status':
           events.status.push({ side, statusId: parts[2] });
+          // Update translator status so _syncPostTurnStatus has the correct value
+          this.status[side][this.active[side]] = parts[2];
           // Status applied to opponent of last attacker = secondary effect (Body Slam→par, Ice Beam→frz)
           if (lastMoveBy && side !== lastMoveBy) {
             sideEffects[lastMoveBy] = true;
@@ -519,6 +533,8 @@ class TurnTranslator {
           break;
         case '-curestatus':
           events.curestatus.push({ side, statusId: parts[2] });
+          // Clear the status in translator
+          this.status[side][this.active[side]] = '';
           // In Gen 1, waking from sleep or thawing from freeze costs the turn.
           // If this happens before any move/cant, it's a start-of-turn cure — treat as cant.
           if (firstActionSide === null && (parts[2] === 'slp' || parts[2] === 'frz')) {
@@ -646,6 +662,13 @@ class TurnTranslator {
         p2: events.subBroke.some(e => e.side === 'p2'),
       },
       drainHeal,
+      // Switch-in data for each side — HP at the time of the switch, before
+      // any moves execute. The bridge uses this to write the correct pre-move HP
+      // to the party struct (NOT the post-damage HP from the translator).
+      switchIn: {
+        p1: events.switchIn.find(s => s.side === 'p1') || null,
+        p2: events.switchIn.find(s => s.side === 'p2') || null,
+      },
     };
   }
 
@@ -659,7 +682,7 @@ class TurnTranslator {
         const side = this._parseSide(msg.parts[1]);
         if (side === 'p2') {
           const species = this._parseSpecies(msg.parts[1]);
-          const partyIdx = this._findPartyIndex(species);
+          const partyIdx = this._findPartyIndex(species, side);
           this._handleSwitch(side, msg.parts[1], msg.parts[3]);
           return { enemyAction: 4 + partyIdx };
         }
@@ -682,7 +705,8 @@ class TurnTranslator {
 
     for (let i = 0; i < 6; i++) {
       result.playerPartyHP.push(this.hp.p1[i] || 0);
-      result.enemyPartyHP.push(this.hp.p2[i] || 0);
+      // Use null for unrevealed enemy slots so _syncHP preserves ROM template HP
+      result.enemyPartyHP.push(this.hp.p2[i] !== undefined ? (this.hp.p2[i] || 0) : null);
     }
 
     return result;
@@ -750,7 +774,7 @@ class TurnTranslator {
   _handleSwitch(side, pokemonIdent, hpText) {
     if (!side) return;
     const species = this._parseSpecies(pokemonIdent);
-    const partyIdx = this._findPartyIndex(species);
+    const partyIdx = this._findPartyIndex(species, side);
     if (partyIdx >= 0) {
       this.active[side] = partyIdx;
       if (hpText) {
@@ -788,19 +812,39 @@ class TurnTranslator {
     this.prevHp[side] = this.hp[side][this.active[side]];
   }
 
-  _findPartyIndex(species) {
-    for (let i = 0; i < window.PARTY.length; i++) {
-      if (window.PARTY[i].name.toLowerCase() === species.toLowerCase()) return i;
+  _getParty(side) {
+    if (side === 'p2') return this.enemyParty;
+    return window.PARTY;
+  }
+
+  _findPartyIndex(species, side) {
+    const party = this._getParty(side);
+    for (let i = 0; i < party.length; i++) {
+      if (party[i].name.toLowerCase() === species.toLowerCase()) return i;
+    }
+    // For enemy side, register new Pokemon as they appear
+    if (side === 'p2') {
+      const idx = party.length;
+      party.push({ name: species, moves: [] });
+      console.log(`[TurnTranslator] Registered enemy Pokemon: ${species} at slot ${idx}`);
+      return idx;
     }
     console.warn(`[TurnTranslator] Unknown species: ${species}`);
     return 0;
   }
 
-  _findMoveSlot(partyIdx, moveName) {
-    const mon = window.PARTY[partyIdx];
+  _findMoveSlot(partyIdx, moveName, side) {
+    const party = this._getParty(side || 'p1');
+    const mon = party[partyIdx];
     if (!mon) return 0;
     for (let i = 0; i < mon.moves.length; i++) {
       if (mon.moves[i].toLowerCase() === moveName.toLowerCase()) return i;
+    }
+    // For enemy, register new moves as they're used
+    if (side === 'p2' && mon.moves.length < 4) {
+      const idx = mon.moves.length;
+      mon.moves.push(moveName);
+      return idx;
     }
     console.warn(`[TurnTranslator] Move "${moveName}" not found in ${mon.name}'s moveset`);
     return 0;
@@ -839,14 +883,14 @@ class TurnTranslator {
     // Check if enemy used a move
     const enemyMove = events.moves.find(m => m.side === 'p2');
     if (enemyMove) {
-      const slot = this._findMoveSlot(this.active.p2, enemyMove.moveName);
+      const slot = this._findMoveSlot(this.active.p2, enemyMove.moveName, 'p2');
       return slot; // 0-3 for move slots
     }
 
     // Check if enemy switched
     const enemySwitch = events.switchIn.find(s => s.side === 'p2');
     if (enemySwitch) {
-      const partyIdx = this._findPartyIndex(enemySwitch.speciesName);
+      const partyIdx = this._findPartyIndex(enemySwitch.speciesName, 'p2');
       return 4 + partyIdx; // 4+ for switch
     }
 
@@ -858,7 +902,7 @@ class TurnTranslator {
     if (!enemyMove) return { moveId: 0x5E, slot: 0 }; // default Psychic
 
     const moveId = MOVE_MAP[enemyMove.moveName] || 0x5E;
-    const slot = this._findMoveSlot(this.active.p2, enemyMove.moveName);
+    const slot = this._findMoveSlot(this.active.p2, enemyMove.moveName, 'p2');
     return { moveId, slot };
   }
 }

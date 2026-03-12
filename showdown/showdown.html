@@ -2,14 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>ShowdownEmu</title>
+  <title>Showdown EmuLink</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: #0f0f13;
-      color: #e0e0e6;
+      background: #344b6c;
+      color: black;
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
     }
@@ -24,19 +24,17 @@
       justify-content: center;
       min-height: 100vh;
       padding: 24px;
-      background:
-        radial-gradient(ellipse at 50% 0%, rgba(88, 60, 180, 0.12) 0%, transparent 60%),
-        #0f0f13;
+      background: #344b6c;
     }
 
     .card {
-      background: #1a1a24;
-      border: 1px solid #2a2a3a;
-      border-radius: 12px;
+      background: #EEF2F5;
+      border: 1px solid #AAAAAA;
+      border-radius: 8px;
       padding: 32px;
       width: 100%;
       max-width: 420px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
 
     .card h2 {
@@ -45,7 +43,7 @@
       font-size: 22px;
       font-weight: 600;
       letter-spacing: 1px;
-      color: #fff;
+      color: #222;
     }
 
     /* ===== Sections ===== */
@@ -58,7 +56,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      color: #666;
+      color: #555;
       margin-bottom: 8px;
     }
 
@@ -70,21 +68,21 @@
     .field-label {
       display: block;
       font-size: 12px;
-      color: #888;
+      color: #777;
       margin-bottom: 3px;
     }
 
     .field input, .field textarea, .field select {
       width: 100%;
       padding: 9px 12px;
-      background: #12121a;
-      border: 1px solid #2a2a3a;
-      border-radius: 6px;
-      color: #e0e0e6;
-      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      background: #EEEEEE;
+      border: 1px solid #999;
+      border-radius: 4px;
+      color: black;
+      font-family: 'Segoe UI', system-ui, sans-serif;
       font-size: 13px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
       -webkit-appearance: none;
       appearance: none;
     }
@@ -98,11 +96,12 @@
     }
 
     .field input:focus, .field textarea:focus, .field select:focus {
-      border-color: #5b4fc4;
+      border-color: #004488;
+      box-shadow: 0 0 5px #2266AA;
     }
 
     .field input::placeholder, .field textarea::placeholder {
-      color: #444;
+      color: #999;
     }
 
     .field textarea {
@@ -112,7 +111,7 @@
     }
 
     .field textarea.invalid {
-      border-color: #e05555;
+      border-color: #EE4422;
     }
 
     /* ===== Buttons ===== */
@@ -120,30 +119,52 @@
       width: 100%;
       padding: 12px;
       margin-top: 8px;
-      background: linear-gradient(135deg, #5b4fc4, #4a3db0);
+      background: linear-gradient(to bottom, hsl(210,40%,62%), hsl(210,40%,52%));
       color: #fff;
-      border: none;
-      border-radius: 8px;
+      border: 1px solid hsl(210,40%,40%);
+      border-radius: 5px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      letter-spacing: 0.5px;
+      text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #6b5fd4, #5a4dc0);
-      box-shadow: 0 4px 16px rgba(91, 79, 196, 0.3);
-      transform: translateY(-1px);
+      background: linear-gradient(to bottom, hsl(210,40%,67%), hsl(210,40%,57%));
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .btn-primary:active:not(:disabled) {
-      transform: translateY(0);
+      background: linear-gradient(to bottom, hsl(210,40%,47%), hsl(210,40%,52%));
     }
 
     .btn-primary:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    .btn-cancel {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: linear-gradient(to bottom, hsl(0,0%,85%), hsl(0,0%,75%));
+      color: #333;
+      border: 1px solid hsl(0,0%,65%);
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+      background: linear-gradient(to bottom, hsl(0,0%,90%), hsl(0,0%,80%));
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-cancel:active {
+      background: linear-gradient(to bottom, hsl(0,0%,70%), hsl(0,0%,75%));
     }
 
     /* ===== Status ===== */
@@ -155,17 +176,17 @@
       min-height: 20px;
     }
 
-    .status-msg.error { color: #e05555; }
-    .status-msg.success { color: #55c878; }
+    .status-msg.error { color: #EE4422; }
+    .status-msg.success { color: #0A6; }
 
     /* ===== Account Badge (shown on battle screen) ===== */
     .account-badge {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #12121a;
-      border: 1px solid #2a2a3a;
-      border-radius: 8px;
+      background: #E1E8E8;
+      border: 1px solid #BBBBBB;
+      border-radius: 6px;
       padding: 10px 14px;
       margin-bottom: 20px;
     }
@@ -173,21 +194,21 @@
     .account-badge .account-name {
       font-size: 14px;
       font-weight: 500;
-      color: #e0e0e6;
+      color: #222;
     }
 
     .account-badge .account-label {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #55c878;
+      color: #0A6;
       display: block;
       margin-bottom: 2px;
     }
 
     .account-badge .sign-out {
       font-size: 12px;
-      color: #666;
+      color: #888;
       cursor: pointer;
       background: none;
       border: none;
@@ -197,18 +218,18 @@
     }
 
     .account-badge .sign-out:hover {
-      color: #e05555;
-      background: #1a1218;
+      color: #EE4422;
+      background: #f5e8e5;
     }
 
     /* ===== Mode Toggle (segmented control) ===== */
     .mode-toggle {
       display: flex;
-      background: #12121a;
-      border-radius: 8px;
+      background: #E1E8E8;
+      border-radius: 6px;
       padding: 3px;
       margin-bottom: 20px;
-      border: 1px solid #2a2a3a;
+      border: 1px solid #BBBBBB;
     }
 
     .mode-toggle input[type="radio"] { display: none; }
@@ -219,27 +240,28 @@
       padding: 8px 0;
       font-size: 13px;
       font-weight: 500;
-      color: #888;
+      color: #777;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 4px;
       transition: all 0.2s;
       user-select: none;
     }
 
     .mode-toggle input[type="radio"]:checked + label {
-      background: #2d2d44;
+      background: linear-gradient(to bottom, hsl(210,40%,62%), hsl(210,40%,52%));
       color: #fff;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      border: 1px solid hsl(210,40%,40%);
+      text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
     }
 
     /* ===== Radio Group (Search / Challenge) ===== */
     .radio-group {
       display: flex;
       gap: 4px;
-      background: #12121a;
-      border-radius: 6px;
+      background: #E1E8E8;
+      border-radius: 4px;
       padding: 3px;
-      border: 1px solid #2a2a3a;
+      border: 1px solid #BBBBBB;
       margin-bottom: 8px;
     }
 
@@ -250,57 +272,50 @@
       text-align: center;
       padding: 7px 8px;
       font-size: 12px;
-      color: #888;
+      color: #777;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: 3px;
       transition: all 0.2s;
       user-select: none;
     }
 
     .radio-group input[type="radio"]:checked + label {
-      background: #2d2d44;
-      color: #e0e0e6;
+      background: #FFFFFF;
+      color: #222;
+      border: 1px solid #AAAAAA;
     }
 
     /* ===== Divider ===== */
     .divider {
       height: 1px;
-      background: #2a2a3a;
+      background: #CCCCCC;
       margin: 16px 0;
     }
-
-    /* ===== Server field (collapsible) ===== */
-    .server-toggle {
-      font-size: 11px;
-      color: #555;
-      cursor: pointer;
-      text-align: right;
-      margin-bottom: 4px;
-      user-select: none;
-    }
-    .server-toggle:hover { color: #888; }
 
     /* ===== Overlay UI (during gameplay) ===== */
     #showdown-ui {
       position: fixed;
-      top: 12px;
-      right: 12px;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 9999;
-      background: rgba(15, 15, 19, 0.9);
+      background: rgba(52, 75, 108, 0.85);
       backdrop-filter: blur(8px);
-      color: #e0e0e6;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #2a2a3a;
-      font-size: 13px;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      font-size: 12px;
       display: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
     }
 
     #showdown-status {
-      font-size: 12px;
-      color: #55c878;
-      margin-bottom: 8px;
+      font-size: 11px;
+      color: #80C480;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -312,25 +327,93 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #55c878;
-      box-shadow: 0 0 6px rgba(85, 200, 120, 0.5);
+      background: #80C480;
+      box-shadow: 0 0 6px rgba(128, 196, 128, 0.5);
     }
 
     #sd-disconnect {
-      padding: 6px 14px;
+      padding: 4px 12px;
       background: transparent;
-      color: #e05555;
-      border: 1px solid #3a2020;
-      border-radius: 6px;
-      font-size: 12px;
+      color: #f88;
+      border: 1px solid rgba(255,136,136,0.4);
+      border-radius: 4px;
+      font-size: 11px;
       cursor: pointer;
       transition: all 0.2s;
-      width: 100%;
+      white-space: nowrap;
     }
 
     #sd-disconnect:hover {
-      background: #2a1515;
-      border-color: #e05555;
+      background: rgba(255,100,100,0.15);
+      border-color: #f88;
+    }
+
+    /* ===== Desync Overlay ===== */
+    #desync-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    #desync-overlay .desync-card {
+      background: #EEF2F5;
+      border: 2px solid #EE4422;
+      border-radius: 8px;
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    #desync-overlay h3 {
+      color: #EE4422;
+      margin: 0 0 12px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    #desync-overlay .desync-hint {
+      font-size: 13px;
+      color: #555;
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
+
+    #desync-overlay .desync-details {
+      background: #fff;
+      border: 1px solid #AAAAAA;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #333;
+      white-space: pre-wrap;
+      margin: 0 0 16px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #desync-dismiss {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(to bottom, #EE5533, #CC3311);
+      color: #fff;
+      border: 1px solid #AA2200;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
+    }
+
+    #desync-dismiss:hover {
+      background: linear-gradient(to bottom, #FF6644, #DD4422);
     }
   </style>
 </head>
@@ -339,7 +422,7 @@
   <!-- ========== Screen 1: Sign In ========== -->
   <div id="auth-screen" class="screen">
     <div class="card">
-      <h2>ShowdownEmu</h2>
+      <h2>Showdown EmuLink</h2>
 
       <div class="section">
         <div class="section-title">Showdown Account</div>
@@ -353,14 +436,6 @@
         </div>
       </div>
 
-      <!-- Server (collapsed by default) -->
-      <div class="server-toggle" id="server-toggle">Server settings</div>
-      <div id="server-section" style="display:none">
-        <div class="field">
-          <input id="sd-server" value="wss://sim3.psim.us/showdown/websocket">
-        </div>
-      </div>
-
       <button class="btn-primary" id="auth-btn">Sign In</button>
       <div class="status-msg" id="auth-status"></div>
     </div>
@@ -369,7 +444,7 @@
   <!-- ========== Screen 2: Battle Setup ========== -->
   <div id="battle-screen" class="screen" style="display:none">
     <div class="card">
-      <h2>ShowdownEmu</h2>
+      <h2>Showdown EmuLink</h2>
 
       <!-- Account badge -->
       <div class="account-badge">
@@ -436,11 +511,12 @@
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#aaa;cursor:pointer;margin-bottom:8px;user-select:none">
-          <input type="checkbox" id="sd-enemy-auto" checked style="accent-color:#5b4fc4"> Random enemy AI
+          <input type="checkbox" id="sd-enemy-auto" checked style="accent-color:hsl(210,40%,52%)"> Random enemy AI
         </label>
       </div>
 
       <button class="btn-primary" id="sd-start">Start Battle</button>
+      <button class="btn-cancel" id="sd-cancel" style="display:none">Cancel</button>
       <div class="status-msg" id="battle-status"></div>
     </div>
   </div>
@@ -454,6 +530,16 @@
     <button id="sd-disconnect">Disconnect</button>
   </div>
 
+  <!-- Desync overlay (shown on state mismatch) -->
+  <div id="desync-overlay" style="display:none">
+    <div class="desync-card">
+      <h3>Desync Detected</h3>
+      <p class="desync-hint">The emulator state no longer matches the Showdown server. The connection has been closed to prevent further divergence.</p>
+      <div class="desync-details" id="desync-details"></div>
+      <button id="desync-dismiss">Dismiss</button>
+    </div>
+  </div>
+
   <!-- Showdown bridge scripts -->
   <script src="showdown-config.js"></script>
   <script src="showdown-rom.js"></script>
@@ -461,6 +547,12 @@
   <script src="showdown-translator.js"></script>
   <script src="showdown-party.js"></script>
   <script src="showdown-bridge.js"></script>
+  <script src="bridge/showdown-bridge-input.js"></script>
+  <script src="bridge/showdown-bridge-wram.js"></script>
+  <script src="bridge/showdown-bridge-faint.js"></script>
+  <script src="bridge/showdown-bridge-callbacks.js"></script>
+  <script src="bridge/showdown-bridge-sync.js"></script>
+  <script src="bridge/showdown-bridge-format.js"></script>
   <script src="showdown-test.js"></script>
   <script>
     // Forward console.log/warn/error to dev server for remote reading
@@ -488,10 +580,74 @@
   </script>
   <script>
     // =========================================================================
+    // Desync handler
+    // =========================================================================
+    function showDesyncError(message) {
+      document.getElementById('desync-details').textContent = message;
+      document.getElementById('desync-overlay').style.display = 'flex';
+      const s = document.getElementById('showdown-status');
+      if (s) {
+        s.textContent = 'Desynced';
+        s.style.color = '#e05555';
+      }
+    }
+
+    window.showdownBridge.onDesync = (reason) => showDesyncError(reason);
+
+    document.getElementById('desync-dismiss').addEventListener('click', () => {
+      returnToBattleScreen({ type: 'desync' });
+    });
+
+    // =========================================================================
+    // Battle end — return to setup screen
+    // =========================================================================
+    function returnToBattleScreen(result) {
+      // Clean up emulator
+      const game = document.getElementById('game');
+      if (window.EJS_emulator) {
+        try { window.EJS_emulator.callEvent('exit'); } catch (e) {}
+        window.EJS_emulator = undefined;
+      }
+      game.style.display = 'none';
+      game.innerHTML = '';
+
+      // Hide overlays
+      document.getElementById('showdown-ui').style.display = 'none';
+      document.getElementById('desync-overlay').style.display = 'none';
+
+      // Disconnect bridge
+      window.showdownBridge.disconnectLive();
+
+      // Show battle screen
+      const saved = getSavedCreds();
+      if (saved) {
+        showBattleScreen(saved.name);
+        const status = document.getElementById('battle-status');
+        if (result?.type === 'desync') {
+          status.textContent = 'Disconnected due to desync.';
+          status.className = 'status-msg error';
+        } else if (result?.type === 'win') {
+          const won = result.winner === saved.name;
+          status.textContent = won ? 'You won!' : 'You lost.';
+          status.className = 'status-msg ' + (won ? 'success' : 'error');
+        } else {
+          status.textContent = 'Battle ended.';
+          status.className = 'status-msg';
+        }
+      } else {
+        showAuthScreen();
+      }
+    }
+
+    window.showdownBridge.onBattleEnd = (result) => {
+      returnToBattleScreen(result);
+    };
+
+    // =========================================================================
     // Credential Storage (localStorage)
     // =========================================================================
-    const CRED_KEY = 'showdownemu_creds';
-    const SERVER_KEY = 'showdownemu_server';
+    const CRED_KEY = 'showdownemulink_creds';
+    const DEFAULT_SERVER = 'wss://sim3.psim.us/showdown/websocket';
 
     function getSavedCreds() {
       try {
@@ -503,23 +659,14 @@
       return null;
     }
 
-    function saveCreds(name, pass, server) {
+    function saveCreds(name, pass) {
       try {
         localStorage.setItem(CRED_KEY, JSON.stringify({ name, pass }));
-        if (server) localStorage.setItem(SERVER_KEY, server);
       } catch (e) { /* localStorage unavailable */ }
     }
 
     function clearCreds() {
       try { localStorage.removeItem(CRED_KEY); } catch (e) {}
-    }
-
-    function getSavedServer() {
-      try {
-        return localStorage.getItem(SERVER_KEY) || 'wss://sim3.psim.us/showdown/websocket';
-      } catch (e) {
-        return 'wss://sim3.psim.us/showdown/websocket';
-      }
     }
 
     // =========================================================================
@@ -543,18 +690,21 @@
       document.getElementById('battle-status').textContent = '';
       document.getElementById('battle-status').className = 'status-msg';
       document.getElementById('sd-start').disabled = false;
+      document.getElementById('sd-cancel').style.display = 'none';
+    }
+
+    function resetBattleUI() {
+      document.getElementById('sd-start').disabled = false;
+      document.getElementById('sd-cancel').style.display = 'none';
+      document.getElementById('battle-status').textContent = '';
+      document.getElementById('battle-status').className = 'status-msg';
     }
 
     // =========================================================================
     // Init: check for saved creds
     // =========================================================================
-    const savedServer = getSavedServer();
-    document.getElementById('sd-server').value = savedServer;
-
-    // Pre-fill from config.json (dev convenience), but localStorage takes priority
+    // Pre-fill from config.json (dev convenience)
     fetch('/api/config').then(r => r.json()).then(cfg => {
-      if (cfg.server && !localStorage.getItem(SERVER_KEY))
-        document.getElementById('sd-server').value = cfg.server;
       if (cfg.enemy?.name) document.getElementById('sd-enemy-name').value = cfg.enemy.name;
       if (cfg.enemy?.pass) document.getElementById('sd-enemy-pass').value = cfg.enemy.pass;
     }).catch(() => {});
@@ -568,16 +718,11 @@
     // =========================================================================
     // Auth Screen: Sign In
     // =========================================================================
-    document.getElementById('server-toggle').addEventListener('click', () => {
-      const s = document.getElementById('server-section');
-      s.style.display = s.style.display === 'none' ? '' : 'none';
-    });
-
     document.getElementById('auth-btn').addEventListener('click', async () => {
       const name = document.getElementById('auth-name').value.trim();
       const pass = document.getElementById('auth-pass').value;
       const status = document.getElementById('auth-status');
-      const server = document.getElementById('sd-server').value;
+      const server = DEFAULT_SERVER;
       const btn = document.getElementById('auth-btn');
       status.className = 'status-msg';
 
@@ -600,7 +745,7 @@
         await testConn.login(name, pass || undefined);
 
         // Success — save and transition
-        saveCreds(name, pass, server);
+        saveCreds(name, pass);
         testConn.disconnect();
 
         showBattleScreen(name);
@@ -638,9 +783,6 @@
         document.getElementById('play-options').style.display = mode === 'play' ? '' : 'none';
         document.getElementById('test-options').style.display = mode === 'test' ? '' : 'none';
         document.getElementById('sd-team-hint').style.display = mode === 'test' ? '' : 'none';
-        if (mode === 'test' && !document.getElementById('sd-team').value.trim()) {
-          document.getElementById('sd-team').value = DEFAULT_PACKED_TEAM;
-        }
       });
     });
 
@@ -649,6 +791,15 @@
         const playMode = document.querySelector('input[name="play-mode"]:checked').value;
         document.getElementById('challenge-target').style.display = playMode === 'challenge' ? '' : 'none';
       });
+    });
+
+    // =========================================================================
+    // Battle Screen: Cancel Search
+    // =========================================================================
+    document.getElementById('sd-cancel').addEventListener('click', () => {
+      const bridge = window.showdownBridge;
+      bridge.cancelSearch();
+      resetBattleUI();
     });
 
     // =========================================================================
@@ -662,7 +813,7 @@
       }
 
       const mode = document.querySelector('input[name="mode"]:checked').value;
-      const server = getSavedServer();
+      const server = DEFAULT_SERVER;
       const status = document.getElementById('battle-status');
       status.className = 'status-msg';
 
@@ -774,6 +925,7 @@
             status.textContent = msg;
             status.className = 'status-msg error';
             document.getElementById('sd-start').disabled = false;
+            document.getElementById('sd-cancel').style.display = 'none';
             bridge.playerConn.disconnect();
             if (bridge.enemyConn) bridge.enemyConn.disconnect();
           };
@@ -790,14 +942,19 @@
           if (playMode === 'challenge') {
             status.textContent = `Challenging ${challengeTarget}...`;
             console.log(`[ShowdownBridge] Challenging "${challengeTarget}" in ${format}`);
+            bridge._challengeTarget = challengeTarget;
             bridge.playerConn.challenge(challengeTarget, format);
           } else {
             status.textContent = `Searching for ${format} battle...`;
             console.log(`[ShowdownBridge] Searching for ${format} battle...`);
+            bridge._challengeTarget = null;
             bridge.playerConn.send(`|/search ${format}`);
           }
 
+          document.getElementById('sd-cancel').style.display = '';
+
           await bridge._waitForBattleStart(60000);
+          document.getElementById('sd-cancel').style.display = 'none';
           status.textContent = 'Battle started! Loading emulator...';
           status.className = 'status-msg success';
         }
@@ -807,8 +964,8 @@
         document.getElementById('game').style.display = '';
 
         window.EJS_player = "#game";
-        window.EJS_gameName = "ShowdownEmu";
-        window.EJS_gameUrl = "roms/pokeyellow.gbc?v=" + Date.now();
+        window.EJS_gameName = "Showdown EmuLink";
+        window.EJS_gameUrl = "../roms/pokeyellow.gbc?v=" + Date.now();
         window.EJS_core = "gambatte";
         window.EJS_pathtodata = "https://cdn.emulatorjs.org/4.2.1/data/";
         window.EJS_startOnLoaded = true;
@@ -842,14 +999,18 @@
           return;
         }
 
-        bridge.rom.write8(0xD152, 1); // ShowdownConnected
-        bridge.rom.write8(0xD12A, 0x04); // LinkState = LINK_STATE_BATTLING
+        bridge.rom.write8(ADDR.ShowdownConnected, 1);
+        bridge.rom.write8(ADDR.LinkState, 0x04); // LINK_STATE_BATTLING
         bridge.connected = true;
+
+        // Write player name to WRAM (must be after WRAM scan which uses default "PLAYER")
+        writePlayerName(bridge.rom, bridge.playerConn.username);
 
         // Write custom team to WRAM (overrides ROM's hardcoded party)
         if (bridge._playerRequest?.side?.pokemon) {
           writePartyToWRAM(bridge.rom, bridge._playerRequest, 'player');
           writeActiveBattleMonToWRAM(bridge.rom, bridge._playerRequest, 'player');
+          bridge._verifyTeamSync();
         }
         if (bridge.mode === 'test' && bridge._enemyRequest?.side?.pokemon) {
           writePartyToWRAM(bridge.rom, bridge._enemyRequest, 'enemy');
@@ -860,7 +1021,7 @@
         bridge._processInitialMessages();
 
         // Show overlay UI
-        document.getElementById('showdown-ui').style.display = 'block';
+        document.getElementById('showdown-ui').style.display = 'flex';
 
         // Start live polling
         bridge._pollLive();
@@ -868,10 +1029,18 @@
 
       } catch (e) {
         const msg = e.message.replace(/^\[.*?\]\s*/, '');
+
+        // User cancelled — just reset UI silently
+        if (msg === 'Search cancelled') {
+          resetBattleUI();
+          return;
+        }
+
         status.textContent = 'Error: ' + msg;
         status.className = 'status-msg error';
         console.error(e);
         document.getElementById('sd-start').disabled = false;
+        document.getElementById('sd-cancel').style.display = 'none';
 
         // If auth failed, clear saved creds and go back to auth screen
         if (msg.includes('Login failed') || msg.includes('bad credentials')) {

@@ -1,5 +1,5 @@
 /**
- * ShowdownEmu — Configuration, addresses, and utility functions.
+ * Showdown EmuLink — Configuration, addresses, and utility functions.
  *
  * Globals: ADDR, WRAM_BASE, BTN, DEFAULT_PACKED_TEAM, parsePackedTeam,
  *          GEN1_BASE_HP, GEN1_DEX, estimateGen1HP
@@ -36,12 +36,24 @@ const ADDR = Object.freeze({
   // Native game variables
   SerialReceiveData:    0xCC3E,
   SerialSendData:       0xCC42,
+  PlayerSelectedMove:   0xCCDC,
   EnemySelectedMove:    0xCCDD,
   EnemyMoveListIndex:   0xCCE2,
-  EnemyMonHP:           0xCFE5,
-  EnemyMonStatus:       0xCFE8,
+
+  // Active battle mon structs
+  BattleMon:            0xD013,   // wBattleMon (player active, 29 bytes)
   BattleMonHP:          0xD014,
   BattleMonStatus:      0xD017,
+  BattleMonMoves:       0xD01B,   // player active mon's 4 move IDs
+  BattleMonPP:          0xD02C,   // 4 bytes (PP for moves 0-3)
+  EnemyMonSpecies2:     0xCFD7,   // wEnemyMonSpecies2 — used for sprite lookup
+  EnemyMonNick:         0xCFD9,   // wEnemyMonNick (11 bytes)
+  EnemyMon:             0xCFE4,   // wEnemyMon (enemy active, 29 bytes)
+  EnemyMonHP:           0xCFE5,
+  EnemyMonStatus:       0xCFE8,
+  EnemyMonMoves:        0xCFEC,   // enemy active mon's 4 move IDs
+
+  // Battle status
   PlayerBattleStatus1:  0xD061,
   PlayerBattleStatus2:  0xD062,
   PlayerBattleStatus3:  0xD063,
@@ -50,10 +62,21 @@ const ADDR = Object.freeze({
   EnemyBattleStatus3:   0xD068,
   PlayerMonStatMods:    0xCD1A, // 6 bytes (atk, def, spd, spc, acc, eva) — but Gen 1 has 8
   EnemyMonStatMods:     0xCD2E, // 6 bytes
+
+  // Player party
   PartyCount:           0xD166,
-  PartyMons:            0xD16E,
+  PartySpecies:         0xD167,   // 7 bytes: 6 species + 0xFF terminator
+  PartyMons:            0xD16E,   // 6 * 0x2C bytes
+  PartyMonOT:           0xD276,   // 6 * 11 bytes
+  PartyMonNicks:        0xD2B8,   // 6 * 11 bytes
+
+  // Enemy party
+  EnemyTrainerName:     0xD88A,   // wLinkEnemyTrainerName (11 bytes)
   EnemyPartyCount:      0xD89F,
-  EnemyMons:            0xD8A7,
+  EnemyPartySpecies:    0xD8A0,   // 7 bytes: 6 species + 0xFF terminator
+  EnemyMons:            0xD8A7,   // 6 * 0x2C bytes
+  EnemyMonOT:           0xD9AF,   // 6 * 11 bytes
+  EnemyMonNicks:        0xD9F1,   // 6 * 11 bytes
 
   // Player action (for live mode — wSerialExchangeNybbleSendData is NOT written in Showdown path)
   PlayerMoveListIndex:  0xCC2E,
@@ -64,15 +87,15 @@ const ADDR = Object.freeze({
   PlayerMonNumber:       0xCC2F,
   EnemyMonPartyPos:      0xCFE7,
 
-  // Additional addresses for test automation
+  // Additional addresses
+  PlayerName:            0xD15B,  // wPlayerName (11 bytes)
   PlayerConfusedCounter: 0xD06A,
   EnemyConfusedCounter:  0xD06F,
   LinkState:             0xD12A,
-  BattleMonPP:           0xD02C,  // 4 bytes (PP for moves 0-3)
-  PartyMon1HP:           0xD16F,  // 2 bytes each, stride = PARTYMON_STRUCT_LENGTH (0x2C)
+  PartyMon1HP:           0xD16F,  // 2 bytes each, stride = 0x2C
   EnemyMon1HP:           0xD8A8,
 
-  // Status + multi-turn state addresses
+  // Status + multi-turn state
   PartyMon1Status:        0xD172,   // stride 0x2C
   EnemyMon1Status:        0xD8AB,   // stride 0x2C
   PlayerNumAttacksLeft:   0xD069,
@@ -89,10 +112,6 @@ const ADDR = Object.freeze({
   // Disabled move number (actual move ID)
   PlayerDisabledMoveNumber: 0xCCEE, // 1 byte
   EnemyDisabledMoveNumber:  0xCCEF, // 1 byte
-
-  // Battle mon move lists (4 bytes each)
-  BattleMonMoves:         0xD01C,   // player active mon's 4 move IDs
-  EnemyMonMoves:          0xCFED,   // enemy active mon's 4 move IDs
 });
 
 // WRAM starts at 0xC000 on the Game Boy
@@ -108,7 +127,7 @@ const BTN = { A: 8, B: 0, UP: 4, DOWN: 5, LEFT: 6, RIGHT: 7, START: 3, SELECT: 2
 // Default packed team — used as fallback in test mode only
 // =============================================================================
 
-const DEFAULT_PACKED_TEAM = 'Alakazam|||noability|psychic,thunderwave,recover,seismictoss|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|]Starmie|||noability|surf,psychic,thunderbolt,recover|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|]Snorlax|||noability|bodyslam,earthquake,icebeam,rest|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|]Tauros|||noability|bodyslam,earthquake,blizzard,hyperbeam|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|]Chansey|||noability|icebeam,thunderbolt,thunderwave,softboiled|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|]Exeggutor|||noability|psychic,explosion,megadrain,rest|Serious|1,0,0,0,0,0||30,30,30,30,30,30||100|';
+const DEFAULT_PACKED_TEAM = 'Alakazam|||noability|psychic,thunderwave,recover,seismictoss|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|]Starmie|||noability|surf,psychic,thunderbolt,recover|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|]Snorlax|||noability|bodyslam,earthquake,icebeam,rest|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|]Tauros|||noability|bodyslam,earthquake,blizzard,hyperbeam|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|]Chansey|||noability|icebeam,thunderbolt,thunderwave,softboiled|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|]Exeggutor|||noability|psychic,explosion,megadrain,rest|Serious|252,252,252,252,252,252||30,30,30,30,30,30||100|';
 
 // =============================================================================
 // Packed team parser
@@ -451,6 +470,19 @@ function importTeam(buffer) {
       curSet.moves.push(line);
     }
   }
+  // Gen 1 competitive: all EVs default to 252 (no 510 cap).
+  // Pokepastes rarely include EVs lines, and partial EVs lines leave unmentioned
+  // stats at 0. Fill any missing/zero EVs with 252 so Showdown calculates correct stats.
+  for (var k = 0; k < team.length; k++) {
+    if (!team[k].evs) {
+      team[k].evs = { hp: 252, atk: 252, def: 252, spa: 252, spd: 252, spe: 252 };
+    } else {
+      var stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+      for (var s = 0; s < stats.length; s++) {
+        if (!team[k].evs[stats[s]]) team[k].evs[stats[s]] = 252;
+      }
+    }
+  }
   return team;
 }
 
@@ -514,7 +546,16 @@ function normalizeTeamInput(text) {
     // Validate by parsing
     const parsed = parsePackedTeam(text);
     if (parsed.length === 0) return { packed: text, pokemon: [], error: 'Could not parse packed team' };
-    return { packed: text, pokemon: parsed, error: null };
+    // Gen 1: default missing/zero EVs to 252
+    const fixed = text.split(']').filter(s => s.trim()).map(mon => {
+      const f = mon.split('|');
+      const evStr = f[6] || '';
+      const evs = evStr.split(',').map(v => parseInt(v, 10) || 0);
+      while (evs.length < 6) evs.push(0);
+      f[6] = evs.map(v => v || 252).join(',');
+      return f.join('|');
+    }).join(']');
+    return { packed: fixed, pokemon: parsed, error: null };
   }
 
   // Pokepaste format — import then pack

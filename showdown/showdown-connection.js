@@ -115,14 +115,6 @@ class ShowdownConnection {
   }
 
   /**
-   * Login as a guest (unregistered name).
-   * Flow: challstr → POST action.php?act=getassertion → /trn with assertion
-   */
-  loginAsGuest(username) {
-    return this.login(username);
-  }
-
-  /**
    * Login with optional password.
    * Guest:      login('name')          → getassertion
    * Registered: login('name', 'pass')  → login action (returns assertion)
@@ -130,7 +122,6 @@ class ShowdownConnection {
   login(username, password) {
     return new Promise(async (resolve, reject) => {
       this.username = username;
-      this._pendingPassword = password;
 
       // Timeout after 15 seconds
       const timer = setTimeout(() => {
@@ -209,10 +200,6 @@ class ShowdownConnection {
 
   challenge(opponent, format = 'gen1ou') {
     this.send(`|/challenge ${opponent}, ${format}`);
-  }
-
-  acceptChallenge() {
-    this.send(`|/accept`);
   }
 
   sendChoice(choice, rqid) {

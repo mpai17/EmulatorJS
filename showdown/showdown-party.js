@@ -1,5 +1,5 @@
 /**
- * ShowdownEmu — Party WRAM Writer
+ * Showdown EmuLink — Party WRAM Writer
  *
  * Writes a Showdown team (from |request| JSON) into GB WRAM so the ROM
  * uses the player's actual team instead of the hardcoded templates.
@@ -17,37 +17,26 @@
 // =============================================================================
 // These match the sym file values directly (sigAddr=0xD15B in showdown-rom.js).
 
+// Party WRAM address lookup by side (uses ADDR from showdown-config.js)
 const PARTY_WRAM = Object.freeze({
   player: {
-    count:   0xD166,  // wPartyCount
-    species: 0xD167,  // wPartySpecies (7 bytes: 6 + 0xFF terminator)
-    mons:    0xD16E,  // wPartyMons (6 * 0x2C bytes)
-    ot:      0xD276,  // wPartyMonOT (6 * 11 bytes)
-    nicks:   0xD2B8,  // wPartyMonNicks (6 * 11 bytes)
+    count:   ADDR.PartyCount,
+    species: ADDR.PartySpecies,
+    mons:    ADDR.PartyMons,
+    ot:      ADDR.PartyMonOT,
+    nicks:   ADDR.PartyMonNicks,
   },
   enemy: {
-    count:   0xD89F,  // wEnemyPartyCount
-    species: 0xD8A0,  // wEnemyPartySpecies
-    mons:    0xD8A7,  // wEnemyMons
-    ot:      0xD9AF,  // wEnemyMonOT
-    nicks:   0xD9F1,  // wEnemyMonNicks
+    count:   ADDR.EnemyPartyCount,
+    species: ADDR.EnemyPartySpecies,
+    mons:    ADDR.EnemyMons,
+    ot:      ADDR.EnemyMonOT,
+    nicks:   ADDR.EnemyMonNicks,
   },
-  enemyTrainerName: 0xD88A,  // wLinkEnemyTrainerName (11 bytes)
 });
 
 const STRUCT_LEN = 0x2C; // PARTYMON_STRUCT_LENGTH = 44 bytes
 const NAME_LEN = 11;     // GB name length including terminator
-
-// =============================================================================
-// Type Constants (from type_constants.asm)
-// =============================================================================
-
-const TYPE_ID = Object.freeze({
-  NORMAL:   0x00, FIGHTING: 0x01, FLYING: 0x02, POISON: 0x03,
-  GROUND:   0x04, ROCK:     0x05, BUG:    0x07, GHOST:  0x08,
-  FIRE:     0x14, WATER:    0x15, GRASS:  0x16, ELECTRIC: 0x17,
-  PSYCHIC:  0x18, ICE:      0x19, DRAGON: 0x1A,
-});
 
 // =============================================================================
 // Species Data: name → { id: internal ROM ID, t1: type1, t2: type2 }
@@ -557,11 +546,7 @@ function writeActiveBattleMonToWRAM(rom, request, side) {
   const activeMon = pokemon.find(p => p.active) || pokemon[0];
   const activeIndex = pokemon.indexOf(activeMon);
 
-  // Base address: 1 byte before HP (species field)
-  // Derived from existing verified ADDR constants
-  const base = side === 'player'
-    ? ADDR.BattleMonHP - 1   // 0xD013
-    : ADDR.EnemyMonHP - 1;   // 0xCFE4
+  const base = side === 'player' ? ADDR.BattleMon : ADDR.EnemyMon;
 
   const species = normalizeSpecies(activeMon.ident || activeMon.details);
   const info = GEN1_SPECIES[species] || { id: 0x99, t1: 0x00, t2: 0x00 };
@@ -612,13 +597,131 @@ function writeActiveBattleMonToWRAM(rom, request, side) {
     rom.write8(base + 0x19 + i, ppByte);         // PP
   }
 
-  // Also update the BattleMonPP mirror at the ADDR location (used by FIGHT menu)
-  if (side === 'player') {
-    for (let i = 0; i < 4; i++) {
-      const ppByte = romMoves[i] ? computeMaxPP(romMoves[i]) : 0;
-      rom.write8(ADDR.BattleMonPP + i, ppByte);
-    }
+  console.log(`[PartyWriter] Wrote ${side} active battle mon: ${species} (slot ${activeIndex})`);
+}
+
+/**
+ * Write an enemy Pokemon to WRAM from just its species name + HP%.
+ * @param {ROMInterface} rom
+ * @param {string} speciesName
+ * @param {number} partyIdx - party slot (0-5)
+ * @param {number} hpPercent - current HP as % of max (0-100)
+ * @param {object} [opts] - options
+ * @param {boolean} [opts.writeActive=true] - write to active battle mon WRAM.
+ *   Set false for mid-turn switches so the ROM reads the outgoing mon's name
+ *   for the "withdrew" message before it copies party data → active.
+ * @param {number} [opts.statusByte=0] - GB status byte for this mon
+ * @param {string[]} [opts.moves=[]] - known move names (Showdown display names)
+ */
+function writeEnemyMonFromSpecies(rom, speciesName, partyIdx, hpPercent, opts) {
+  const { writeActive = true, statusByte = 0, moves = [] } = opts || {};
+  const species = normalizeSpecies(speciesName);
+  const info = GEN1_SPECIES[species] || { id: 0x99, t1: 0x00, t2: 0x00 };
+  const maxHP = estimateGen1HP(species);
+  const curHP = Math.round(hpPercent * maxHP / 100);
+
+  // Write to enemy party species list (don't move the 0xFF terminator —
+  // ROM init already placed it at position 6 for the full party)
+  rom.write8(PARTY_WRAM.enemy.species + partyIdx, info.id);
+
+  // Update party count if needed
+  const currentCount = rom.read8(PARTY_WRAM.enemy.count);
+  if (partyIdx >= currentCount) {
+    rom.write8(PARTY_WRAM.enemy.count, partyIdx + 1);
   }
 
-  console.log(`[PartyWriter] Wrote ${side} active battle mon: ${species} (slot ${activeIndex})`);
+  // Write to enemy party mon struct (minimal)
+  const monBase = PARTY_WRAM.enemy.mons + partyIdx * STRUCT_LEN;
+  rom.write8(monBase + 0x00, info.id);      // Species
+  rom.write16be(monBase + 0x01, curHP);      // CurHP
+  rom.write8(monBase + 0x04, statusByte);    // Status
+  rom.write8(monBase + 0x05, info.t1);       // Type1
+  rom.write8(monBase + 0x06, info.t2);       // Type2
+  rom.write8(monBase + 0x0E, 100);           // Level
+  rom.write16be(monBase + 0x22, maxHP);      // MaxHP
+  rom.write16be(monBase + 0x24, 100);        // Attack (placeholder)
+  rom.write16be(monBase + 0x26, 100);        // Defense
+  rom.write16be(monBase + 0x28, 100);        // Speed
+  rom.write16be(monBase + 0x2A, 100);        // Special
+
+  // Write known moves to party struct (offsets 0x08-0x0B)
+  // The ROM copies party → active on switch, including the move list.
+  for (let i = 0; i < 4; i++) {
+    const moveId = (moves[i] && MOVE_MAP[moves[i]]) || 0;
+    rom.write8(monBase + 0x08 + i, moveId);
+  }
+
+  // DVs — max (15/15/15/15) = 0xFFFF for competitive Pokemon
+  rom.write8(monBase + 0x1B, 0xFF);
+  rom.write8(monBase + 0x1C, 0xFF);
+
+  // Write nickname to party nicks (species name in GB encoding)
+  const nick = speciesNickname(species);
+  const encoded = encodeGBName(nick);
+  const nickBase = PARTY_WRAM.enemy.nicks + partyIdx * NAME_LEN;
+  for (let i = 0; i < encoded.length; i++) rom.write8(nickBase + i, encoded[i]);
+
+  // Write OT name
+  const otName = encodeGBName('RIVAL');
+  const otBase = PARTY_WRAM.enemy.ot + partyIdx * NAME_LEN;
+  for (let i = 0; i < otName.length; i++) rom.write8(otBase + i, otName[i]);
+
+  // Write to active enemy battle mon — skip during switches so the ROM
+  // reads the OLD mon's name for the "withdrew" message first
+  if (writeActive) {
+    const base = ADDR.EnemyMon;
+    rom.write8(base + 0x00, info.id);          // Species
+    rom.write16be(base + 0x01, curHP);          // HP
+    rom.write8(base + 0x03, partyIdx);          // PartyPos
+    rom.write8(base + 0x04, statusByte);        // Status
+    rom.write8(base + 0x05, info.t1);           // Type1
+    rom.write8(base + 0x06, info.t2);           // Type2
+    rom.write8(base + 0x0E, 100);               // Level
+    rom.write16be(base + 0x0F, maxHP);           // MaxHP
+
+    // Moves in active battle mon
+    for (let i = 0; i < 4; i++) {
+      const moveId = (moves[i] && MOVE_MAP[moves[i]]) || 0;
+      rom.write8(ADDR.EnemyMonMoves + i, moveId);
+    }
+
+    // DVs — offset 0x0C in battle mon struct
+    rom.write8(base + 0x0C, 0xFF);
+    rom.write8(base + 0x0D, 0xFF);
+
+    // Sprite lookup + active battle mon nickname
+    rom.write8(ADDR.EnemyMonSpecies2, info.id);
+    for (let i = 0; i < encoded.length; i++) rom.write8(ADDR.EnemyMonNick + i, encoded[i]);
+  }
+
+  console.log(`[PartyWriter] Wrote enemy mon from species: ${species} (slot ${partyIdx}, HP=${curHP}/${maxHP}, active=${writeActive}, status=0x${statusByte.toString(16)})`);
+}
+
+/**
+ * Write the player's trainer name to WRAM.
+ * Must be called AFTER the WRAM signature scan (which uses the default "PLAYER" name).
+ * @param {ROMInterface} rom
+ * @param {string} name - Showdown username
+ */
+function writePlayerName(rom, name) {
+  const gbName = name.toUpperCase().slice(0, 7);
+  const encoded = encodeGBName(gbName);
+  for (let i = 0; i < NAME_LEN; i++) {
+    rom.write8(ADDR.PlayerName + i, encoded[i]);
+  }
+  console.log(`[PartyWriter] Wrote player name: ${gbName}`);
+}
+
+/**
+ * Write the opponent's trainer name to WRAM.
+ * @param {ROMInterface} rom
+ * @param {string} name - Showdown username
+ */
+function writeEnemyTrainerName(rom, name) {
+  const gbName = name.toUpperCase().slice(0, 7);
+  const encoded = encodeGBName(gbName);
+  for (let i = 0; i < NAME_LEN; i++) {
+    rom.write8(ADDR.EnemyTrainerName + i, encoded[i]);
+  }
+  console.log(`[PartyWriter] Wrote enemy trainer name: ${gbName}`);
 }

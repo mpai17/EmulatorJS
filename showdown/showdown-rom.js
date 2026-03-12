@@ -21,7 +21,7 @@ class ROMInterface {
   /**
    * Lazily resolve the WRAM base offset within HEAPU8.
    * Since retro_get_memory_data is not exported by EmulatorJS, we scan
-   * HEAPU8 for a known byte pattern: the player name "PLAYER@" at wPlayerName (0xD15B).
+   * HEAPU8 for a known byte pattern: the player name "PLAYER@" at wPlayerName.
    * In the ROM's charmap: P=$8F L=$8B A=$80 Y=$98 E=$84 R=$91 @=$50
    */
   _getWramPtr() {
@@ -35,9 +35,9 @@ class ROMInterface {
 
     this._module = mod;
 
-    // Known signature: "PLAYER@" in GB charmap encoding at wPlayerName = 0xD15B
+    // Known signature: "PLAYER@" in GB charmap encoding at wPlayerName
     const signature = [0x8F, 0x8B, 0x80, 0x98, 0x84, 0x91, 0x50]; // P L A Y E R @
-    const sigAddr = 0xD15B; // GB address of wPlayerName
+    const sigAddr = ADDR.PlayerName;
     const heap = mod.HEAPU8;
 
     // Scan HEAPU8 for the signature
@@ -58,8 +58,8 @@ class ROMInterface {
       const wramBase = i - (sigAddr - WRAM_BASE);
       if (wramBase < 0) continue;
 
-      // Verify: check a second known value — wPartyCount should be 6 (at 0xD166)
-      const partyCount = heap[wramBase + (0xD166 - WRAM_BASE)];
+      // Verify: check a second known value — wPartyCount should be 6
+      const partyCount = heap[wramBase + (ADDR.PartyCount - WRAM_BASE)];
       if (partyCount !== 6) continue;
 
       this._wramPtr = wramBase;
