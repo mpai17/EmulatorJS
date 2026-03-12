@@ -30,14 +30,31 @@ ShowdownBridge.prototype._syncPreTurnStatus = function(overrides) {
     const cureFreeze = (overrides.statusChanges || []).some(
       s => s.side === side && s.statusId === 'frz' && s.type === 'cure');
 
-    // Only adjust WRAM status for sleep/freeze counter management.
+    // Determine if this side is switching this turn
+    const isSwitching = overrides.switchIn?.[side] != null;
+
+    // Only adjust WRAM status for sleep/freeze counter management or switches.
     // Do NOT unconditionally overwrite — the ROM already has the correct
     // non-volatile status from _syncPostTurnStatus of the previous turn.
     // Overwriting here would prematurely set statuses that are applied by
     // moves THIS turn (e.g. writing SLP before Hypnosis executes → "already asleep").
+    //
+    // Exception: on a switch, the active battle mon slot still holds the OUTGOING
+    // mon's status. We must write the incoming mon's status so the ROM's move
+    // execution sees the correct value (e.g. Thunder Wave checks target status).
     let statusByte = this.rom.read8(activeAddr);
+    const STATUS_MAP_PRE = { par: 0x40, brn: 0x10, frz: 0x20, psn: 0x08, tox: 0x08 };
 
-    if (cantEntry?.reason === 'slp') {
+    if (isSwitching) {
+      const incomingStatus = this.translator.status[side][activeIdx] || '';
+      if (incomingStatus === 'slp') {
+        statusByte = 0x03;
+      } else {
+        statusByte = STATUS_MAP_PRE[incomingStatus] || 0x00;
+      }
+      this.rom.write8(activeAddr, statusByte);
+      this.rom.write8(partyStatusBase + activeIdx * PARTYMON_STRIDE, statusByte);
+    } else if (cantEntry?.reason === 'slp') {
       // Mon is asleep and can't move — ensure sleep counter is > 0
       statusByte = (statusByte & ~0x07) | 0x02;
       this.rom.write8(activeAddr, statusByte);
