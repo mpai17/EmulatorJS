@@ -493,7 +493,7 @@
         <div class="section-title">Team</div>
         <div class="field">
           <textarea id="sd-team" rows="3" placeholder="Paste team (pokepaste or packed format)"></textarea>
-          <span class="field-label" id="sd-team-hint" style="margin-top:4px;display:none">Default: Alakazam / Starmie / Snorlax / Tauros / Chansey / Exeggutor</span>
+          <span class="field-label" id="sd-team-hint" style="margin-top:4px;display:none">Leave empty for default: Alakazam / Starmie / Snorlax / Tauros / Chansey / Exeggutor</span>
         </div>
       </div>
 
@@ -818,10 +818,10 @@
       status.className = 'status-msg';
 
       // Parse team — accepts pokepaste or packed format
-      const rawTeam = document.getElementById('sd-team').value.trim() || DEFAULT_PACKED_TEAM;
+      const rawTeam = document.getElementById('sd-team').value.trim() || (mode === 'test' ? DEFAULT_PACKED_TEAM : '');
       const teamResult = normalizeTeamInput(rawTeam);
       if (teamResult.error) {
-        status.textContent = teamResult.error;
+        status.textContent = mode === 'test' ? teamResult.error : 'Paste a team to start a battle.';
         status.className = 'status-msg error';
         document.getElementById('sd-start').disabled = false;
         return;
